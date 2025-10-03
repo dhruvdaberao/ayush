@@ -1,0 +1,43 @@
+--- Debugging and Refactoring Report ---
+
+The project had several critical bugs, primarily in object initialization, object uniqueness (equals/hashCode), and core business logic within the Schedular class, which were causing runtime errors and incorrect behavior shown in your JUnit tests.
+
+Here is a summary of the fixes applied:
+
+1.  Game.java: Critical Fixes
+    * Constructor Visibility: The parameterized constructor was 'private', causing a compilation error in Schedular.java when trying to create a new Game object.
+        --> FIX: Changed `private Game(String, int)` to `public Game(String, int)`.
+    * Self-Assignment Issue: The constructor had `gameName = gameName;` which failed to initialize the instance variable.
+        --> FIX: Used `this.gameName = gameName;` to correctly assign instance variables.
+    * Missing hashCode(): Since `equals()` was overridden (to check uniqueness by game name), `hashCode()` must also be overridden. Without it, Set/Map operations would treat two Game objects with the same name as unique.
+        --> FIX: Added `hashCode()` implementation based on `gameName`.
+
+2.  Player.java: Critical Fixes
+    * Missing equals()/hashCode(): The `equals()` method was commented out, meaning the Set/Map would check object identity, causing player uniqueness checks to fail.
+        --> FIX: Implemented `equals()` and `hashCode()` based on `playerName`.
+    * Comparable Interface: Corrected the raw type `Comparable` to the parameterized `Comparable<Player>`.
+
+3.  Schedular.java: Logic and Flow Fixes
+    * addGame Logic: The exception logic was inverted. The original code threw an exception if the game was added successfully.
+        --> FIX: Corrected the logic to throw `GameAlreadyExistsException` only if `games.add(g)` returns `false` (i.e., the game already existed).
+    * addSchedule Logic (Major Fixes):
+        * Used the `dayNameScheduleMap` for efficient checking of existing days instead of the slower `searchDay` method.
+        * The logic for throwing `DayAlreadyScheduledException` was corrected to check if the day existed AND if no *new* games were added to its schedule.
+        * Corrected the logic to throw `InvalidGameException` instead of calling `System.exit(1)` when an invalid game is encountered during scheduling.
+        * Ensured that new DaySchedule objects are correctly added to the main `this.days` Set if they are created.
+    * addPlayer Logic:
+        * Corrected the logic to check for player uniqueness at the beginning using `this.players.contains(p)`.
+        * Implemented validation that ensures all games are valid BEFORE the player is added to the main `this.players` Set and `gamePlayerMap`.
+    * Display Methods (displayPlayerwiseSchedule & displayDaywiseSchedule):
+        * Removed the inefficient and complex `Collections.sort` and `Collections.binarySearch` logic, which required creating and sorting temporary lists.
+        * --> FIX: Replaced with direct lookup on the `dayNameScheduleMap` (for day display) or direct iteration on the `this.players` Set (for player display), leveraging the corrected `equals()` method.
+
+4.  SchedularClient.java: Loop Bug
+    * acceptPlayerDetails Loop: The inner loop used the outer loop's counter (`for(i=0;i<nog;i++)`), which would reset the outer loop's counter, making the application only process the details for one player regardless of the number entered.
+        --> FIX: Changed the inner loop counter to a new variable (`for(int j=0; j<nog; j++)`).
+
+
+
+
+
+
